@@ -15,15 +15,30 @@
   label { display: block; margin-top: 10px; font-weight: bold; }
   input, select, button { margin-top: 5px; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 100%; box-sizing: border-box; }
   button.action-btn { background: #00e676; color: #000; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; padding: 12px; }
-  .select-group { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; background: #2a2a2a; padding: 8px; border-radius: 4px; }
-  .select-group label { font-weight: normal; margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-  .select-group input[type="checkbox"] { width: auto; }
+  
+  /* タップ入れ替えリストUI */
+  .squad-section { margin-bottom: 15px; }
+  .squad-section-title { font-size: 0.9em; font-weight: bold; color: #aaa; margin-bottom: 5px; }
+  .player-grid { display: flex; flex-wrap: wrap; gap: 6px; background: #2a2a2a; padding: 10px; border-radius: 6px; min-height: 40px; }
+  .player-chip { background: #3a3a3a; padding: 6px 10px; border-radius: 20px; cursor: pointer; font-size: 0.85em; border: 1px solid #555; user-select: none; }
+  .player-chip.starter { background: #1b5e20; border-color: #00e676; color: #fff; font-weight: bold; }
+  .player-chip.sub { background: #e65100; border-color: #ff9800; color: #fff; }
+
+  /* カウンターUI */
   .counter-item { display: flex; align-items: center; justify-content: space-between; background: #2a2a2a; padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; }
   .counter-btn { width: 30px; height: 30px; padding: 0; margin: 0 5px; font-weight: bold; background: #444; border: none; border-radius: 4px; }
+  
+  /* テーブル & ランキング */
   table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
   th, td { border: 1px solid #444; padding: 6px 4px; text-align: center; }
   th { background: #333; cursor: pointer; color: #00e676; }
   .injury-badge { background: #ff5252; color: #fff; padding: 2px 4px; border-radius: 4px; font-size: 0.75em; }
+  
+  .ranking-container { display: flex; gap: 10px; margin-bottom: 20px; }
+  .ranking-box { flex: 1; background: #2a2a2a; padding: 10px; border-radius: 6px; }
+  .ranking-box h4 { margin: 0 0 8px 0; color: #00e676; font-size: 0.9em; text-align: center; border-bottom: 1px solid #444; padding-bottom: 4px; }
+  .ranking-list { list-style: none; padding: 0; margin: 0; font-size: 0.8em; }
+  .ranking-list li { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #333; }
 </style>
 </head>
 <body>
@@ -45,7 +60,7 @@
   <label>節</label>
   <input type="number" id="m-section" placeholder="例: 1">
   
-  <label>対戦相手（自由入力）</label>
+  <label>対戦相手</label>
   <input type="text" id="m-opponent" placeholder="例: 横浜F・マリノス">
   
   <label>ホーム / アウェイ</label>
@@ -54,8 +69,22 @@
     <option value="Away">Away</option>
   </select>
   
-  <label>スタメン選択 (11人選択)</label>
-  <div id="m-starting-group" class="select-group"></div>
+  <p style="font-size: 0.8em; color: #aaa;">選手名をタップして「スタメン」「途中出場」「不参加」を切り替えられます。</p>
+  
+  <div class="squad-section">
+    <div class="squad-section-title">⚽ スタメン (タップで控えへ移動)</div>
+    <div id="m-starters-grid" class="player-grid"></div>
+  </div>
+
+  <div class="squad-section">
+    <div class="squad-section-title">🔄 途中出場メンバー (タップで不参加へ移動)</div>
+    <div id="m-subs-grid" class="player-grid"></div>
+  </div>
+
+  <div class="squad-section">
+    <div class="squad-section-title">🏃 その他メンバー (タップでスタメンへ追加)</div>
+    <div id="m-bench-grid" class="player-grid"></div>
+  </div>
 
   <h3>2. 試合結果情報</h3>
   <label>スコア (自チーム)</label>
@@ -63,14 +92,11 @@
   <label>スコア (相手チーム)</label>
   <input type="number" id="m-score-opp" value="0">
 
-  <label>途中出場選手</label>
-  <div id="m-subs-group" class="select-group"></div>
+  <label>得点者</label>
+  <div id="m-scorers-container"></div>
 
-  <label>得点者 (複数ゴール対応)</label>
-  <div id="m-scorers-container" class="select-group"></div>
-
-  <label>アシスト者 (複数アシスト対応)</label>
-  <div id="m-assists-container" class="select-group"></div>
+  <label>アシスト者</label>
+  <div id="m-assists-container"></div>
 
   <button class="action-btn" onclick="submitMatch()">試合結果を登録（怪我抽選実行）</button>
 </div>
@@ -84,6 +110,19 @@
 <!-- 選手成績 -->
 <div id="tab-stats" class="tab-content">
   <h2>選手成績</h2>
+
+  <!-- ランキング表示エリア -->
+  <div class="ranking-container">
+    <div class="ranking-box">
+      <h4>⚽ 得点ランキング TOP5</h4>
+      <ul id="goal-ranking" class="ranking-list"></ul>
+    </div>
+    <div class="ranking-box">
+      <h4>👟 アシストランキング TOP5</h4>
+      <ul id="assist-ranking" class="ranking-list"></ul>
+    </div>
+  </div>
+
   <table>
     <thead>
       <tr>
@@ -105,10 +144,20 @@
   <h2>スカッド・チーム管理</h2>
   <button style="background:#0288d1; color:#fff;" onclick="loadKashimaSquad()">鹿島アントラーズの選手データを読み込む</button>
   
-  <h3>基本スタメン設定 (11人選択)</h3>
-  <p style="font-size: 0.85em; color: #aaa;">ここで選んだスタメンが試合登録時に自動選択されます。</p>
-  <div id="squad-starter-group" class="select-group"></div>
-  <button style="background:#ff9800; color:#000; font-weight:bold;" onclick="saveBaseStarters()">基本スタメンを保存</button>
+  <h3>基本スタメン設定</h3>
+  <p style="font-size: 0.8em; color: #aaa;">タップしてスタメン11人を選んで保存してください。</p>
+
+  <div class="squad-section">
+    <div class="squad-section-title">⭐ 基本スタメン (タップで解除)</div>
+    <div id="sq-starters-grid" class="player-grid"></div>
+  </div>
+
+  <div class="squad-section">
+    <div class="squad-section-title">🏃 控えメンバー (タップで基本スタメンに追加)</div>
+    <div id="sq-bench-grid" class="player-grid"></div>
+  </div>
+
+  <button style="background:#ff9800; color:#000; font-weight:bold;" onclick="saveBaseStarters()">基本スタメンの設定を保存</button>
 
   <h3>個別選手追加</h3>
   <label>選手名</label> <input type="text" id="p-name">
@@ -123,18 +172,16 @@
   <button class="action-btn" onclick="addSinglePlayer()">選手を追加</button>
 
   <h3>登録済み選手一覧</h3>
-  <ul id="squad-list" style="list-style:none; padding:0;"></ul>
+  <ul id="squad-list" style="list-style:none; padding:0; font-size:0.85em;"></ul>
 </div>
 
 <script>
-// 画像を基にした鹿島アントラーズ 全選手データ
+// 鹿島アントラーズ初期データ
 const kashimaData = [
-  // GK
   { id: 'k1', number: 1, name: '早川 友基', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
   { id: 'k21', number: 21, name: '山田 大樹', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k29', number: 29, name: '梶川 裕嗣', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k31', number: 31, name: '藤井 陽登', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  // DF
   { id: 'k2', number: 2, name: '安西 幸輝', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
   { id: 'k3', number: 3, name: 'キム・テヒョン', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k4', number: 4, name: '千田 海人', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
@@ -147,7 +194,6 @@ const kashimaData = [
   { id: 'k35', number: 35, name: '元砂 晏翔仁 ウデンバ', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k37', number: 37, name: '広瀬 陸斗', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k55', number: 55, name: '植田 直通', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  // MF
   { id: 'k6', number: 6, name: '三竿 健斗', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
   { id: 'k8', number: 8, name: 'マテウス・ブエノ', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
   { id: 'k10', number: 10, name: '柴崎 岳', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
@@ -157,7 +203,6 @@ const kashimaData = [
   { id: 'k42', number: 42, name: '大貫 琉偉', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k43', number: 43, name: '福岡 勇和', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k44', number: 44, name: '平島 大悟', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  // FW
   { id: 'k9', number: 9, name: 'レオ・セアラ', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
   { id: 'k11', number: 11, name: '田川 亨介', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
   { id: 'k17', number: 17, name: 'エウベル', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
@@ -171,6 +216,10 @@ const kashimaData = [
 let players = JSON.parse(localStorage.getItem('ef_players')) || [...kashimaData];
 let matches = JSON.parse(localStorage.getItem('ef_matches')) || [];
 
+// 一時的な試合選択状態
+let currentMatchStarters = [];
+let currentMatchSubs = [];
+
 function saveStorage() {
   localStorage.setItem('ef_players', JSON.stringify(players));
   localStorage.setItem('ef_matches', JSON.stringify(matches));
@@ -182,19 +231,54 @@ function switchTab(tabId) {
   document.getElementById('tab-' + tabId).classList.add('active');
   event.target.classList.add('active');
   
-  if(tabId === 'match') renderMatchForm();
+  if(tabId === 'match') initMatchForm();
   if(tabId === 'matches') renderMatches();
   if(tabId === 'stats') renderStats();
   if(tabId === 'squad') renderSquad();
 }
 
 function loadKashimaSquad() {
-  if (confirm('選手データを初期化して画像記載の鹿島データに置き換えますか？')) {
+  if (confirm('選手データを初期化して鹿島データに置き換えますか？')) {
     players = JSON.parse(JSON.stringify(kashimaData));
     saveStorage();
     renderSquad();
     alert('データが更新されました');
   }
+}
+
+// ---------------- スカッド管理 ----------------
+function renderSquad() {
+  const startersGrid = document.getElementById('sq-starters-grid');
+  const benchGrid = document.getElementById('sq-bench-grid');
+
+  const starters = players.filter(p => p.isBaseStarter);
+  const bench = players.filter(p => !p.isBaseStarter);
+
+  startersGrid.innerHTML = starters.map(p => `
+    <div class="player-chip starter" onclick="toggleBaseStarter('${p.id}')">
+      ${p.number} ${p.name}
+    </div>
+  `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
+
+  benchGrid.innerHTML = bench.map(p => `
+    <div class="player-chip" onclick="toggleBaseStarter('${p.id}')">
+      ${p.number} ${p.name}
+    </div>
+  `).join('');
+
+  const list = document.getElementById('squad-list');
+  list.innerHTML = players.map(p => `<li>${p.number} ${p.name} (${p.pos}) ${p.isBaseStarter ? '<b>[基本スタメン]</b>' : ''} ${p.injuryDays > 0 ? `<span class="injury-badge">離脱:残${p.injuryDays}試合</span>` : ''}</li>`).join('');
+}
+
+function toggleBaseStarter(id) {
+  const p = players.find(x => x.id === id);
+  if(p) p.isBaseStarter = !p.isBaseStarter;
+  renderSquad();
+}
+
+function saveBaseStarters() {
+  saveStorage();
+  alert('基本スタメン設定を保存しました！');
 }
 
 function addSinglePlayer() {
@@ -210,29 +294,55 @@ function addSinglePlayer() {
   document.getElementById('p-number').value = '';
 }
 
-function saveBaseStarters() {
-  const selected = Array.from(document.querySelectorAll('.chk-base-starter:checked')).map(cb => cb.value);
-  players.forEach(p => {
-    p.isBaseStarter = selected.includes(p.id);
-  });
-  saveStorage();
-  alert('基本スタメンを保存しました！');
+// ---------------- 試合登録 ----------------
+function initMatchForm() {
+  currentMatchStarters = players.filter(p => p.isBaseStarter).map(p => p.id);
+  currentMatchSubs = [];
+  renderMatchGrid();
+  renderCounterList('m-scorers-container', 'g');
+  renderCounterList('m-assists-container', 'a');
 }
 
-function renderSquad() {
-  const starterGroup = document.getElementById('squad-starter-group');
-  starterGroup.innerHTML = players.map(p => `
-    <label>
-      <input type="checkbox" value="${p.id}" class="chk-base-starter" ${p.isBaseStarter ? 'checked' : ''}>
-      [${p.pos}] No.${p.number} ${p.name}
-    </label>
+function renderMatchGrid() {
+  const startersGrid = document.getElementById('m-starters-grid');
+  const subsGrid = document.getElementById('m-subs-grid');
+  const benchGrid = document.getElementById('m-bench-grid');
+
+  const starters = players.filter(p => currentMatchStarters.includes(p.id));
+  const subs = players.filter(p => currentMatchSubs.includes(p.id));
+  const bench = players.filter(p => !currentMatchStarters.includes(p.id) && !currentMatchSubs.includes(p.id));
+
+  startersGrid.innerHTML = starters.map(p => `
+    <div class="player-chip starter" onclick="moveMatchPlayer('${p.id}', 'starter')">
+      ${p.number} ${p.name} ${p.injuryDays > 0 ? `<span class="injury-badge">怪我</span>` : ''}
+    </div>
+  `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
+
+  subsGrid.innerHTML = subs.map(p => `
+    <div class="player-chip sub" onclick="moveMatchPlayer('${p.id}', 'sub')">
+      ${p.number} ${p.name}
+    </div>
+  `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
+
+  benchGrid.innerHTML = bench.map(p => `
+    <div class="player-chip" onclick="moveMatchPlayer('${p.id}', 'bench')">
+      ${p.number} ${p.name}
+    </div>
   `).join('');
-
-  const list = document.getElementById('squad-list');
-  list.innerHTML = players.map(p => `<li>[${p.pos}] No.${p.number} ${p.name} ${p.isBaseStarter ? '<b>(基本スタメン)</b>' : ''} ${p.injuryDays > 0 ? `<span class="injury-badge">離脱中:残${p.injuryDays}試合</span>` : ''}</li>`).join('');
 }
 
-// カウンターUIの操作
+function moveMatchPlayer(id, currentZone) {
+  if (currentZone === 'starter') {
+    currentMatchStarters = currentMatchStarters.filter(x => x !== id);
+    currentMatchSubs.push(id);
+  } else if (currentZone === 'sub') {
+    currentMatchSubs = currentMatchSubs.filter(x => x !== id);
+  } else if (currentZone === 'bench') {
+    currentMatchStarters.push(id);
+  }
+  renderMatchGrid();
+}
+
 function changeCount(elementId, delta) {
   const el = document.getElementById(elementId);
   let val = parseInt(el.innerText) + delta;
@@ -240,42 +350,18 @@ function changeCount(elementId, delta) {
   el.innerText = val;
 }
 
-function renderMatchForm() {
-  // スタメン（基本スタメンが自動チェック）
-  const startContainer = document.getElementById('m-starting-group');
-  startContainer.innerHTML = players.map(p => `
-    <label>
-      <input type="checkbox" value="${p.id}" class="chk-start" ${p.isBaseStarter ? 'checked' : ''}>
-      [${p.pos}] No.${p.number} ${p.name} ${p.injuryDays > 0 ? `<span class="injury-badge">怪我(残${p.injuryDays}試合)</span>` : ''}
-    </label>
-  `).join('');
-
-  // 途中出場
-  const subContainer = document.getElementById('m-subs-group');
-  subContainer.innerHTML = players.map(p => `
-    <label>
-      <input type="checkbox" value="${p.id}" class="chk-sub">
-      [${p.pos}] No.${p.number} ${p.name}
-    </label>
-  `).join('');
-
-  // 得点者＆アシスト者の＋－カウンター生成
-  const renderCounterList = (containerId, prefix) => {
-    const container = document.getElementById(containerId);
-    container.innerHTML = players.map(p => `
-      <div class="counter-item">
-        <span>[${p.pos}] No.${p.number} ${p.name}</span>
-        <div>
-          <button type="button" class="counter-btn" onclick="changeCount('${prefix}_${p.id}', -1)">-</button>
-          <span id="${prefix}_${p.id}">0</span>
-          <button type="button" class="counter-btn" onclick="changeCount('${prefix}_${p.id}', 1)">+</button>
-        </div>
+function renderCounterList(containerId, prefix) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = players.map(p => `
+    <div class="counter-item">
+      <span>${p.number} ${p.name}</span>
+      <div>
+        <button type="button" class="counter-btn" onclick="changeCount('${prefix}_${p.id}', -1)">-</button>
+        <span id="${prefix}_${p.id}">0</span>
+        <button type="button" class="counter-btn" onclick="changeCount('${prefix}_${p.id}', 1)">+</button>
       </div>
-    `).join('');
-  };
-
-  renderCounterList('m-scorers-container', 'g');
-  renderCounterList('m-assists-container', 'a');
+    </div>
+  `).join('');
 }
 
 function getRandomInt(min, max) {
@@ -304,18 +390,13 @@ function calculateInjuries(playedPlayerIds) {
     const randSev = Math.random() * 100;
     let type = '', days = 0;
 
-    if (randSev < 55) {
-      type = '軽傷'; days = getRandomInt(1, 2);
-    } else if (randSev < 55 + 32) {
-      type = '中傷'; days = getRandomInt(3, 5);
-    } else if (randSev < 55 + 32 + 10) {
-      type = '重傷'; days = getRandomInt(6, 10);
-    } else {
-      type = '超重症'; days = getRandomInt(19, 38);
-    }
+    if (randSev < 55) { type = '軽傷'; days = getRandomInt(1, 2); }
+    else if (randSev < 55 + 32) { type = '中傷'; days = getRandomInt(3, 5); }
+    else if (randSev < 55 + 32 + 10) { type = '重傷'; days = getRandomInt(6, 10); }
+    else { type = '超重症'; days = getRandomInt(19, 38); }
 
     p.injuryDays = days;
-    injuryResults.push({ name: p.name, type: type, days: days });
+    injuryResults.push({ name: `${p.number} ${p.name}`, type: type, days: days });
   });
 
   return injuryResults;
@@ -330,18 +411,13 @@ function submitMatch() {
 
   if (!section || !opponent) return alert('節と対戦相手を入力してください');
 
-  const starters = Array.from(document.querySelectorAll('.chk-start:checked')).map(cb => cb.value);
-  const subs = Array.from(document.querySelectorAll('.chk-sub:checked')).map(cb => cb.value);
+  const playedPlayers = Array.from(new Set([...currentMatchStarters, ...currentMatchSubs]));
 
-  const playedPlayers = Array.from(new Set([...starters, ...subs]));
-
-  // 出場試合数加算
   playedPlayers.forEach(id => {
     const p = players.find(x => x.id === id);
     if(p) p.apps += 1;
   });
 
-  // 得点数・アシスト数加算（カウンターの値を取得）
   const matchScorers = [];
   const matchAssists = [];
 
@@ -351,26 +427,24 @@ function submitMatch() {
 
     if (goalCount > 0) {
       p.goals += goalCount;
-      matchScorers.push(`${p.name}${goalCount > 1 ? `(${goalCount})` : ''}`);
+      matchScorers.push(`${p.number} ${p.name}${goalCount > 1 ? `(${goalCount})` : ''}`);
     }
     if (assistCount > 0) {
       p.assists += assistCount;
-      matchAssists.push(`${p.name}${assistCount > 1 ? `(${assistCount})` : ''}`);
+      matchAssists.push(`${p.number} ${p.name}${assistCount > 1 ? `(${assistCount})` : ''}`);
     }
   });
 
-  // 既存怪我消化
   players.forEach(p => {
     if (p.injuryDays > 0) p.injuryDays -= 1;
   });
 
-  // 新規怪我判定
   const newInjuries = calculateInjuries(playedPlayers);
 
   matches.push({
     section, opponent, location, scoreMy, scoreOpp,
-    starters: starters.map(id => players.find(p=>p.id===id)?.name),
-    subs: subs.map(id => players.find(p=>p.id===id)?.name),
+    starters: currentMatchStarters.map(id => { const p = players.find(x=>x.id===id); return p ? `${p.number} ${p.name}` : ''; }),
+    subs: currentMatchSubs.map(id => { const p = players.find(x=>x.id===id); return p ? `${p.number} ${p.name}` : ''; }),
     scorers: matchScorers,
     assists: matchAssists,
     injuries: newInjuries
@@ -378,7 +452,7 @@ function submitMatch() {
 
   saveStorage();
 
-  let resultMsg = `第${section}節の試合結果を記録しました！\n\n【怪我人判定結果】\n`;
+  let resultMsg = `第${section}節の試合結果を登録しました！\n\n【怪我人判定結果】\n`;
   if (newInjuries.length === 0) {
     resultMsg += '怪我人は発生しませんでした（0人）';
   } else {
@@ -408,18 +482,21 @@ function renderMatches() {
   `).join('');
 }
 
-let sortAsc = false;
-function sortTable(key) {
-  sortAsc = !sortAsc;
-  players.sort((a, b) => {
-    let valA = a[key], valB = b[key];
-    if (typeof valA === 'string') return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    return sortAsc ? valA - valB : valB - valA;
-  });
-  renderStats();
-}
-
+// 成績＆ランキング描画
 function renderStats() {
+  // 得点ランキング TOP5
+  const topScorers = [...players].sort((a, b) => b.goals - a.goals || a.number - b.number).slice(0, 5);
+  document.getElementById('goal-ranking').innerHTML = topScorers.map((p, idx) => `
+    <li><span>${idx + 1}. ${p.number} ${p.name}</span><strong>${p.goals}点</strong></li>
+  `).join('');
+
+  // アシストランキング TOP5
+  const topAssists = [...players].sort((a, b) => b.assists - a.assists || a.number - b.number).slice(0, 5);
+  document.getElementById('assist-ranking').innerHTML = topAssists.map((p, idx) => `
+    <li><span>${idx + 1}. ${p.number} ${p.name}</span><strong>${p.assists}点</strong></li>
+  `).join('');
+
+  // 選手一覧テーブル
   const tbody = document.getElementById('stats-table-body');
   tbody.innerHTML = players.map(p => `
     <tr>
@@ -434,8 +511,19 @@ function renderStats() {
   `).join('');
 }
 
-// 初回起動処理
-renderSquad();
+let sortAsc = false;
+function sortTable(key) {
+  sortAsc = !sortAsc;
+  players.sort((a, b) => {
+    let valA = a[key], valB = b[key];
+    if (typeof valA === 'string') return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    return sortAsc ? valA - valB : valB - valA;
+  });
+  renderStats();
+}
+
+// 初期化
+initMatchForm();
 </script>
 </body>
 </html>
