@@ -1,826 +1,206 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>イーフト マイリーグ管理</title>
-<style>
-  body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 15px; }
-  h1, h2, h3 { border-bottom: 2px solid #00e676; padding-bottom: 5px; color: #00e676; margin-top: 20px; }
-  
-  /* セーブデータ管理バー */
-  .save-data-bar { background: #2a2a2a; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #00e676; }
-  .save-data-controls { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-  .save-data-controls select { flex: 1; }
-  .btn-sm { padding: 8px 12px; width: auto; font-size: 0.85em; cursor: pointer; white-space: nowrap; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スカッド・チーム管理</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+    }
 
-  .tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-  .tab-btn { background: #333; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
-  .tab-btn.active { background: #00e676; color: #000; font-weight: bold; }
-  .tab-content { display: none; background: #1e1e1e; padding: 15px; border-radius: 8px; }
-  .tab-content.active { display: block; }
-  label { display: block; margin-top: 10px; font-weight: bold; }
-  input, select, button { margin-top: 5px; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 100%; box-sizing: border-box; }
-  button.action-btn { background: #00e676; color: #000; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; padding: 12px; }
-  
-  /* 故障者情報インフォ */
-  .injury-info-box { background: #2d1f1f; border: 1px solid #ff5252; padding: 10px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85em; }
-  .injury-info-title { font-weight: bold; color: #ff5252; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-  .returned-badge { background: #00e676; color: #000; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 0.8em; }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
 
-  /* タップ入れ替えリストUI */
-  .squad-section { margin-bottom: 15px; }
-  .squad-section-title { font-size: 0.9em; font-weight: bold; color: #aaa; margin-bottom: 5px; }
-  .player-grid { display: flex; flex-wrap: wrap; gap: 6px; background: #2a2a2a; padding: 10px; border-radius: 6px; min-height: 40px; }
-  
-  /* 選手チップ（ポジション別カラー） */
-  .player-chip { padding: 6px 10px; border-radius: 20px; cursor: pointer; font-size: 0.85em; border: 1px solid #555; user-select: none; color: #fff; font-weight: bold; }
-  .player-chip.pos-GK { background: #f57f17; border-color: #fbc02d; color: #000; }
-  .player-chip.pos-DF { background: #0d47a1; border-color: #2196f3; }
-  .player-chip.pos-MF { background: #1b5e20; border-color: #4caf50; }
-  .player-chip.pos-FW { background: #b71c1c; border-color: #f44336; }
+    h1 {
+      color: #4CAF50;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
 
-  /* カウンターUI */
-  .counter-item { display: flex; align-items: center; justify-content: space-between; background: #2a2a2a; padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; }
-  .counter-btn { width: 32px; height: 32px; padding: 0; margin: 0 5px; font-weight: bold; background: #444; border: none; border-radius: 4px; color: #fff; font-size: 1.1em; cursor: pointer; }
-  .score-counter-box { display: flex; align-items: center; justify-content: space-between; background: #2a2a2a; padding: 10px; border-radius: 6px; margin-top: 5px; }
+    h2 {
+      font-size: 18px;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 4px;
+      margin-top: 24px;
+    }
 
-  /* テーブル & ランキング */
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
-  th, td { border: 1px solid #444; padding: 6px 4px; text-align: center; }
-  th { background: #333; cursor: pointer; color: #00e676; }
-  .injury-badge { background: #ff5252; color: #fff; padding: 2px 4px; border-radius: 4px; font-size: 0.75em; margin-left: 4px; }
-  
-  /* 新・ランキングUIデザイン */
-  .ranking-container { display: flex; gap: 10px; margin-bottom: 20px; flex-direction: column; }
-  @media (min-width: 600px) {
-    .ranking-container { flex-direction: row; }
-  }
-  .ranking-box { flex: 1; background: #242424; padding: 12px; border-radius: 8px; border: 1px solid #333; }
-  .ranking-box h4 { margin: 0 0 10px 0; color: #00e676; font-size: 0.95em; text-align: center; border-bottom: 1px solid #444; padding-bottom: 6px; }
-  
-  /* 1位カードデザイン */
-  .top-player-card { background: linear-gradient(135deg, #b71c1c 0%, #4a0000 100%); border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; border: 1px solid #ff5252; }
-  .top-player-rank { position: absolute; top: 4px; left: 8px; font-weight: bold; font-size: 0.75em; color: #ffd700; text-transform: uppercase; }
-  .top-player-name { font-weight: bold; font-size: 1.05em; margin-top: 10px; color: #fff; }
-  .top-player-score { text-align: right; }
-  .top-player-score-num { font-size: 1.6em; font-weight: bold; color: #fff; line-height: 1; }
-  .top-player-score-unit { font-size: 0.75em; color: #ddd; }
+    .btn-load {
+      width: 100%;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
 
-  /* 2位以下のリスト */
-  .ranking-list { list-style: none; padding: 0; margin: 0; font-size: 0.85em; }
-  .ranking-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid #333; }
-  .ranking-list li .rank-num { font-weight: bold; color: #888; width: 20px; }
-  .ranking-list li .player-name-text { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
-  
-  .edit-btn { background: #ff9800; color: #000; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; float: right; }
-</style>
+    .sub-text {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 20px;
+    }
+
+    .badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* 選手バッジのスタイル */
+    .player-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* ポジション別カラー */
+    .pos-GK { background-color: #e67e22; } /* オレンジ */
+    .pos-DF { background-color: #2980b9; } /* 青 */
+    .pos-MF { background-color: #27ae60; } /* 緑 */
+    .pos-FW { background-color: #c0392b; } /* 赤 */
+  </style>
 </head>
 <body>
 
-<h1>⚽ イーフト マイリーグ管理</h1>
+  <div class="container">
+    <h1>スカッド・チーム管理</h1>
 
-<!-- セーブデータ管理バー -->
-<div class="save-data-bar">
-  <div style="font-size: 0.85em; color: #00e676; font-weight: bold;">📁 セーブデータ選択・管理</div>
-  <div class="save-data-controls">
-    <select id="save-data-select" onchange="changeSaveData()"></select>
-    <button class="btn-sm" style="background:#0288d1;" onclick="createNewSaveData()">＋新規作成</button>
-    <button class="btn-sm" style="background:#d32f2f;" onclick="deleteCurrentSaveData()">削除</button>
-  </div>
-</div>
+    <button class="btn-load" onclick="loadSampleData()">鹿島アントラーズの選手データを読み込む</button>
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('match')">試合登録</button>
-  <button class="tab-btn" onclick="switchTab('matches')">試合結果一覧</button>
-  <button class="tab-btn" onclick="switchTab('stats')">選手成績</button>
-  <button class="tab-btn" onclick="switchTab('squad')">スカッド管理</button>
-</div>
+    <h2>基本スタメン設定</h2>
+    <p class="sub-text">タップしてスタメン11人を選んで保存してください。</p>
 
-<!-- 試合入力 -->
-<div id="tab-match" class="tab-content active">
-  <h2 id="match-form-title">試合登録</h2>
-  <input type="hidden" id="editing-match-id" value="">
-
-  <!-- 離脱・復帰状況インフォ -->
-  <div class="injury-info-box">
-    <div class="injury-info-title">🚑 故障者・復帰情報</div>
-    <div id="injury-info-content"></div>
-  </div>
-  
-  <h3>1. 試合前情報</h3>
-  <label>節</label>
-  <input type="number" id="m-section" placeholder="例: 1">
-  
-  <label>対戦相手</label>
-  <input type="text" id="m-opponent" placeholder="例: 横浜F・マリノス">
-  
-  <label>ホーム / アウェイ</label>
-  <select id="m-location">
-    <option value="Home">Home</option>
-    <option value="Away">Away</option>
-  </select>
-  
-  <p style="font-size: 0.8em; color: #aaa;">タップで「スタメン ➔ 途中出場 ➔ その他」に移動します。</p>
-  
-  <div class="squad-section">
-    <div class="squad-section-title">⚽ スタメン (タップで途中出場へ移動)</div>
-    <div id="m-starters-grid" class="player-grid"></div>
-  </div>
-
-  <div class="squad-section">
-    <div class="squad-section-title">🔄 途中出場メンバー (タップで不参加へ移動)</div>
-    <div id="m-subs-grid" class="player-grid"></div>
-  </div>
-
-  <div class="squad-section">
-    <div class="squad-section-title">🏃 その他メンバー (タップでスタメンへ追加)</div>
-    <div id="m-bench-grid" class="player-grid"></div>
-  </div>
-
-  <h3>2. 試合結果情報</h3>
-  <label>スコア (自チーム)</label>
-  <div class="score-counter-box">
-    <button type="button" class="counter-btn" onclick="changeVal('m-score-my', -1)">-</button>
-    <span id="m-score-my" style="font-size:1.3em; font-weight:bold;">0</span>
-    <button type="button" class="counter-btn" onclick="changeVal('m-score-my', 1)">+</button>
-  </div>
-
-  <label>スコア (相手チーム)</label>
-  <div class="score-counter-box">
-    <button type="button" class="counter-btn" onclick="changeVal('m-score-opp', -1)">-</button>
-    <span id="m-score-opp" style="font-size:1.3em; font-weight:bold;">0</span>
-    <button type="button" class="counter-btn" onclick="changeVal('m-score-opp', 1)">+</button>
-  </div>
-
-  <label>得点者 (出場選手のみ表示)</label>
-  <div id="m-scorers-container"></div>
-
-  <label>アシスト者 (出場選手のみ表示)</label>
-  <div id="m-assists-container"></div>
-
-  <button class="action-btn" id="submit-match-btn" onclick="submitMatch()">試合結果を登録（怪我抽選実行）</button>
-  <button type="button" id="cancel-edit-btn" style="display:none; background:#666; color:#fff; margin-top:8px;" onclick="resetMatchForm()">編集をキャンセル</button>
-</div>
-
-<!-- 試合一覧 -->
-<div id="tab-matches" class="tab-content">
-  <h2>試合結果一覧</h2>
-  <div id="match-list-container"></div>
-</div>
-
-<!-- 選手成績 -->
-<div id="tab-stats" class="tab-content">
-  <h2>選手成績</h2>
-
-  <div class="ranking-container">
-    <div class="ranking-box">
-      <h4>⚽ 得点ランキング TOP5</h4>
-      <div id="goal-ranking"></div>
+    <div class="card">
+      <div style="font-weight: bold; margin-bottom: 8px;">⭐ 基本スタメン（タップで解除）</div>
+      <div id="starter-list" class="badge-container">
+        <!-- スタメンがここにポジション順で表示されます -->
+      </div>
     </div>
-    <div class="ranking-box">
-      <h4>👟 アシストランキング TOP5</h4>
-      <div id="assist-ranking"></div>
+
+    <div class="card">
+      <div style="font-weight: bold; margin-bottom: 8px;">🏃 控えメンバー（タップで基本スタメンに追加）</div>
+      <div id="sub-list" class="badge-container">
+        <!-- 控えがここにポジション順で表示されます -->
+      </div>
     </div>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th onclick="sortTable('number')">No</th>
-        <th onclick="sortTable('name')">名前</th>
-        <th onclick="sortTable('pos')">POS</th>
-        <th onclick="sortTable('apps')">出場(途中)</th>
-        <th onclick="sortTable('goals')">得点</th>
-        <th onclick="sortTable('assists')">アシスト</th>
-        <th>怪我状況</th>
-      </tr>
-    </thead>
-    <tbody id="stats-table-body"></tbody>
-  </table>
-</div>
+  <script>
+    // ポジションの並び順定義（GK -> DF -> MF -> FW）
+    const POSITION_ORDER = { 'GK': 1, 'DF': 2, 'MF': 3, 'FW': 4 };
 
-<!-- スカッド管理 -->
-<div id="tab-squad" class="tab-content">
-  <h2>スカッド・チーム管理</h2>
-  <button style="background:#0288d1; color:#fff;" onclick="loadKashimaSquad()">鹿島アントラーズの選手データを読み込む</button>
-  
-  <h3>基本スタメン設定</h3>
-  <p style="font-size: 0.8em; color: #aaa;">タップしてスタメン11人を選んで保存してください。</p>
+    // サンプルデータ
+    let starters = [
+      { pos: 'FW', num: 9, name: 'レオ・セアラ' },
+      { pos: 'FW', num: 40, name: '鈴木 優磨' },
+      { pos: 'DF', num: 7, name: '小川 諒也' },
+      { pos: 'DF', num: 55, name: '植田 直通' },
+      { pos: 'MF', num: 6, name: '三竿 健斗' },
+      { pos: 'MF', num: 10, name: '柴崎 岳' },
+      { pos: 'GK', num: 1, name: '早川 友基' },
+      { pos: 'DF', num: 5, name: '関川 郁万' },
+      { pos: 'DF', num: 25, name: '小池 龍太' },
+      { pos: 'MF', num: 27, name: '松村 優太' },
+      { pos: 'FW', num: 17, name: 'エウベル' }
+    ];
 
-  <div class="squad-section">
-    <div class="squad-section-title">⭐ 基本スタメン (タップで解除)</div>
-    <div id="sq-starters-grid" class="player-grid"></div>
-  </div>
+    let subs = [
+      { pos: 'MF', num: 8, name: 'マテウス・ブエノ' },
+      { pos: 'FW', num: 77, name: 'チャヴリッチ' },
+      { pos: 'DF', num: 2, name: '安西 幸輝' },
+      { pos: 'GK', num: 21, name: '山田 大樹' },
+      { pos: 'GK', num: 29, name: '梶川 裕嗣' },
+      { pos: 'GK', num: 31, name: 'パク・ウィジョン' },
+      { pos: 'DF', num: 3, name: 'キム・テヒョン' },
+      { pos: 'DF', num: 4, name: '千田 遼矢' }
+    ];
 
-  <div class="squad-section">
-    <div class="squad-section-title">🏃 控えメンバー (タップで基本スタメンに追加)</div>
-    <div id="sq-bench-grid" class="player-grid"></div>
-  </div>
+    // --- 【重要】ポジション順にソートする関数 ---
+    function sortPlayers(playerArray) {
+      return [...playerArray].sort((a, b) => {
+        const orderA = POSITION_ORDER[a.pos] || 99;
+        const orderB = POSITION_ORDER[b.pos] || 99;
 
-  <button style="background:#ff9800; color:#000; font-weight:bold;" onclick="saveBaseStarters()">基本スタメンの設定を保存</button>
-
-  <h3>個別選手追加</h3>
-  <label>選手名</label> <input type="text" id="p-name">
-  <label>背番号</label> <input type="number" id="p-number">
-  <label>ポジション</label>
-  <select id="p-pos">
-    <option value="GK">GK</option>
-    <option value="DF">DF</option>
-    <option value="MF">MF</option>
-    <option value="FW">FW</option>
-  </select>
-  <button class="action-btn" onclick="addSinglePlayer()">選手を追加</button>
-
-  <h3>登録済み選手一覧</h3>
-  <ul id="squad-list" style="list-style:none; padding:0; font-size:0.85em;"></ul>
-</div>
-
-<script>
-// 鹿島アントラーズ初期データ
-const kashimaData = [
-  { id: 'k1', number: 1, name: '早川 友基', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k21', number: 21, name: '山田 大樹', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k29', number: 29, name: '梶川 裕嗣', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k31', number: 31, name: '藤井 陽登', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k2', number: 2, name: '安西 幸輝', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k3', number: 3, name: 'キム・テヒョン', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k4', number: 4, name: '千田 海人', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k5', number: 5, name: '関川 郁万', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k7', number: 7, name: '小川 諒也', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k19', number: 19, name: '大森 渚生', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k23', number: 23, name: '津久井 佳祐', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k25', number: 25, name: '小池 龍太', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k28', number: 28, name: '大川 佑悟', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k35', number: 35, name: '元砂 晏翔仁 ウデンバ', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k37', number: 37, name: '広瀬 陸斗', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k55', number: 55, name: '植田 直通', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k6', number: 6, name: '三竿 健斗', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k8', number: 8, name: 'マテウス・ブエノ', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k10', number: 10, name: '柴崎 岳', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k14', number: 14, name: '樋口 雄太', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k24', number: 24, name: '林 晴己', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k27', number: 27, name: '松村 優太', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k42', number: 42, name: '大貫 琉偉', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k43', number: 43, name: '福岡 勇和', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k44', number: 44, name: '平島 大悟', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k9', number: 9, name: 'レオ・セアラ', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k11', number: 11, name: '田川 亨介', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k17', number: 17, name: 'エウベル', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k18', number: 18, name: 'ヤン・マテウス', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k30', number: 30, name: '吉田 湊海', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k34', number: 34, name: '徳田 誉', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k40', number: 40, name: '鈴木 優磨', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k77', number: 77, name: 'チャヴリッチ', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true }
-];
-
-// セーブデータ関連の変数
-let saveSlots = JSON.parse(localStorage.getItem('ef_save_slots')) || ['データ1'];
-let currentSlot = localStorage.getItem('ef_current_slot') || saveSlots[0];
-
-let players = [];
-let matches = [];
-let currentMatchStarters = [];
-let currentMatchSubs = [];
-
-// ---------------- セーブデータ管理 ----------------
-function initSaveData() {
-  updateSaveSelect();
-  loadCurrentSlotData();
-}
-
-function updateSaveSelect() {
-  const select = document.getElementById('save-data-select');
-  select.innerHTML = saveSlots.map(s => `<option value="${s}" ${s === currentSlot ? 'selected' : ''}>${s}</option>`).join('');
-}
-
-function loadCurrentSlotData() {
-  players = JSON.parse(localStorage.getItem(`ef_players_${currentSlot}`)) || JSON.parse(JSON.stringify(kashimaData));
-  matches = JSON.parse(localStorage.getItem(`ef_matches_${currentSlot}`)) || [];
-  recalculateAllPlayerStats();
-  resetMatchForm();
-}
-
-function saveStorage() {
-  localStorage.setItem('ef_save_slots', JSON.stringify(saveSlots));
-  localStorage.setItem('ef_current_slot', currentSlot);
-  localStorage.setItem(`ef_players_${currentSlot}`, JSON.stringify(players));
-  localStorage.setItem(`ef_matches_${currentSlot}`, JSON.stringify(matches));
-}
-
-function changeSaveData() {
-  currentSlot = document.getElementById('save-data-select').value;
-  localStorage.setItem('ef_current_slot', currentSlot);
-  loadCurrentSlotData();
-  const activeTab = document.querySelector('.tab-btn.active').getAttribute('onclick').match(/'([^']+)'/)[1];
-  switchTab(activeTab);
-  alert(`「${currentSlot}」に切り替えました。`);
-}
-
-function createNewSaveData() {
-  const name = prompt('新しいデータ（チーム）名を入力してください:', 'チーム' + (saveSlots.length + 1));
-  if (!name) return;
-  if (saveSlots.includes(name)) return alert('同名のデータが既に存在します');
-
-  saveSlots.push(name);
-  currentSlot = name;
-  players = JSON.parse(JSON.stringify(kashimaData));
-  matches = [];
-
-  saveStorage();
-  updateSaveSelect();
-  loadCurrentSlotData();
-  switchTab('match');
-  alert(`新規データ「${name}」を作成しました！`);
-}
-
-function deleteCurrentSaveData() {
-  if (saveSlots.length <= 1) return alert('最後のセーブデータは削除できません');
-  if (!confirm(`本当に「${currentSlot}」を削除しますか？この操作は取り消せません。`)) return;
-
-  localStorage.removeItem(`ef_players_${currentSlot}`);
-  localStorage.removeItem(`ef_matches_${currentSlot}`);
-
-  saveSlots = saveSlots.filter(s => s !== currentSlot);
-  currentSlot = saveSlots[0];
-
-  saveStorage();
-  updateSaveSelect();
-  loadCurrentSlotData();
-  switchTab('match');
-  alert('データを削除しました。');
-}
-
-// ---------------- タブ切り替え ----------------
-function switchTab(tabId) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + tabId).classList.add('active');
-  
-  const btns = document.querySelectorAll('.tab-btn');
-  if (tabId === 'match') btns[0].classList.add('active');
-  if (tabId === 'matches') btns[1].classList.add('active');
-  if (tabId === 'stats') btns[2].classList.add('active');
-  if (tabId === 'squad') btns[3].classList.add('active');
-
-  if(tabId === 'match' && !document.getElementById('editing-match-id').value) initMatchForm();
-  if(tabId === 'matches') renderMatches();
-  if(tabId === 'stats') renderStats();
-  if(tabId === 'squad') renderSquad();
-}
-
-function loadKashimaSquad() {
-  if (confirm(`「${currentSlot}」の選手データを鹿島初期データに置き換えますか？`)) {
-    players = JSON.parse(JSON.stringify(kashimaData));
-    recalculateAllPlayerStats();
-    saveStorage();
-    renderSquad();
-    alert('データが更新されました');
-  }
-}
-
-// ---------------- スカッド管理 ----------------
-function renderSquad() {
-  const startersGrid = document.getElementById('sq-starters-grid');
-  const benchGrid = document.getElementById('sq-bench-grid');
-
-  const starters = players.filter(p => p.isBaseStarter);
-  const bench = players.filter(p => !p.isBaseStarter);
-
-  startersGrid.innerHTML = starters.map(p => `
-    <div class="player-chip pos-${p.pos}" onclick="toggleBaseStarter('${p.id}')">
-      ${p.pos} ${p.number} ${p.name}
-    </div>
-  `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
-
-  benchGrid.innerHTML = bench.map(p => `
-    <div class="player-chip pos-${p.pos}" onclick="toggleBaseStarter('${p.id}')">
-      ${p.pos} ${p.number} ${p.name}
-    </div>
-  `).join('');
-
-  const list = document.getElementById('squad-list');
-  list.innerHTML = players.map(p => `<li>[${p.pos}] ${p.number} ${p.name} ${p.isBaseStarter ? '<b>[基本スタメン]</b>' : ''} ${p.injuryDays > 0 ? `<span class="injury-badge">離脱:残${p.injuryDays}試合</span>` : ''}</li>`).join('');
-}
-
-function toggleBaseStarter(id) {
-  const p = players.find(x => x.id === id);
-  if(p) p.isBaseStarter = !p.isBaseStarter;
-  renderSquad();
-}
-
-function saveBaseStarters() {
-  saveStorage();
-  alert('基本スタメン設定を保存しました！');
-}
-
-function addSinglePlayer() {
-  const name = document.getElementById('p-name').value;
-  const num = parseInt(document.getElementById('p-number').value);
-  const pos = document.getElementById('p-pos').value;
-  if (!name || isNaN(num)) return alert('名前と背番号を入力してください');
-
-  players.push({ id: 'p_' + Date.now(), number: num, name: name, pos: pos, apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false });
-  saveStorage();
-  renderSquad();
-  document.getElementById('p-name').value = '';
-  document.getElementById('p-number').value = '';
-}
-
-// ---------------- 試合登録・編集 ----------------
-function initMatchForm() {
-  currentMatchStarters = players.filter(p => p.isBaseStarter).map(p => p.id);
-  currentMatchSubs = [];
-  document.getElementById('m-score-my').innerText = '0';
-  document.getElementById('m-score-opp').innerText = '0';
-  document.getElementById('m-section').value = '';
-  document.getElementById('m-opponent').value = '';
-  renderInjuryInfo();
-  renderMatchGrid();
-}
-
-// 故障者・復帰情報の描画
-function renderInjuryInfo() {
-  const container = document.getElementById('injury-info-content');
-  const injured = players.filter(p => p.injuryDays > 0);
-  const returned = players.filter(p => p.injuryDays === 0 && p.justReturned);
-
-  let html = '';
-  if (injured.length === 0 && returned.length === 0) {
-    html = '<span style="color:#aaa;">現在離脱中の選手、および今節復帰の選手はいません。</span>';
-  } else {
-    if (returned.length > 0) {
-      html += '<div style="margin-bottom:4px; color:#00e676;">🟢 <b>今節復帰:</b> ' + 
-        returned.map(p => `${p.number} ${p.name}<span class="returned-badge">復帰</span>`).join(', ') + '</div>';
+        // ポジションが異なる場合はポジション順 (GK -> DF -> MF -> FW)
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        // 同じポジションの場合は背番号順
+        return a.num - b.num;
+      });
     }
-    if (injured.length > 0) {
-      html += '<div>🔴 <b>離脱中:</b> ' + 
-        injured.map(p => `${p.number} ${p.name} (残り${p.injuryDays}試合)`).join(', ') + '</div>';
-    }
-  }
-  container.innerHTML = html;
-}
 
-function renderMatchGrid() {
-  const startersGrid = document.getElementById('m-starters-grid');
-  const subsGrid = document.getElementById('m-subs-grid');
-  const benchGrid = document.getElementById('m-bench-grid');
+    // 画面に選手バッジを描画する関数
+    function render() {
+      const starterContainer = document.getElementById('starter-list');
+      const subContainer = document.getElementById('sub-list');
 
-  const starters = players.filter(p => currentMatchStarters.includes(p.id));
-  const subs = players.filter(p => currentMatchSubs.includes(p.id));
-  const bench = players.filter(p => !currentMatchStarters.includes(p.id) && !currentMatchSubs.includes(p.id));
+      // ソート適用後のリストを取得
+      const sortedStarters = sortPlayers(starters);
+      const sortedSubs = sortPlayers(subs);
 
-  startersGrid.innerHTML = starters.map(p => `
-    <div class="player-chip pos-${p.pos}" onclick="moveMatchPlayer('${p.id}', 'starter')">
-      ${p.pos} ${p.number} ${p.name} ${p.injuryDays > 0 ? `<span class="injury-badge">離脱中</span>` : ''}
-    </div>
-  `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
-
-  subsGrid.innerHTML = subs.map(p => `
-    <div class="player-chip pos-${p.pos}" onclick="moveMatchPlayer('${p.id}', 'sub')">
-      ${p.pos} ${p.number} ${p.name}
-    </div>
-  `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
-
-  benchGrid.innerHTML = bench.map(p => `
-    <div class="player-chip pos-${p.pos}" onclick="moveMatchPlayer('${p.id}', 'bench')">
-      ${p.pos} ${p.number} ${p.name}
-    </div>
-  `).join('');
-
-  renderPlayedCounters();
-}
-
-function moveMatchPlayer(id, currentZone) {
-  if (currentZone === 'starter') {
-    currentMatchStarters = currentMatchStarters.filter(x => x !== id);
-    currentMatchSubs.push(id);
-  } else if (currentZone === 'sub') {
-    currentMatchSubs = currentMatchSubs.filter(x => x !== id);
-  } else if (currentZone === 'bench') {
-    currentMatchStarters.push(id);
-  }
-  renderMatchGrid();
-}
-
-function changeVal(elementId, delta) {
-  const el = document.getElementById(elementId);
-  let val = parseInt(el.innerText) + delta;
-  if (val < 0) val = 0;
-  el.innerText = val;
-}
-
-function renderPlayedCounters() {
-  const playedIds = Array.from(new Set([...currentMatchStarters, ...currentMatchSubs]));
-  const playedPlayers = players.filter(p => playedIds.includes(p.id));
-
-  const renderList = (containerId, prefix) => {
-    const container = document.getElementById(containerId);
-    if (playedPlayers.length === 0) {
-      container.innerHTML = '<p style="color:#666; font-size:0.8em;">出場選手を選択してください</p>';
-      return;
-    }
-    container.innerHTML = playedPlayers.map(p => `
-      <div class="counter-item">
-        <span>[${p.pos}] ${p.number} ${p.name}</span>
-        <div>
-          <button type="button" class="counter-btn" onclick="changeVal('${prefix}_${p.id}', -1)">-</button>
-          <span id="${prefix}_${p.id}">0</span>
-          <button type="button" class="counter-btn" onclick="changeVal('${prefix}_${p.id}', 1)">+</button>
+      // スタメン描画
+      starterContainer.innerHTML = sortedStarters.map(p => `
+        <div class="player-badge pos-${p.pos}" onclick="moveToSub('${p.name}')">
+          ${p.pos} ${p.num} ${p.name}
         </div>
-      </div>
-    `).join('');
-  };
+      `).join('');
 
-  renderList('m-scorers-container', 'g');
-  renderList('m-assists-container', 'a');
-}
+      // 控え描画
+      subContainer.innerHTML = sortedSubs.map(p => `
+        <div class="player-badge pos-${p.pos}" onclick="moveToStarter('${p.name}')">
+          ${p.pos} ${p.num} ${p.name}
+        </div>
+      `).join('');
+    }
 
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function calculateInjuries(playedPlayerIds) {
-  const randNum = Math.random() * 100;
-  let count = 0;
-  if (randNum < 44) count = 0;
-  else if (randNum < 44 + 48) count = 1;
-  else if (randNum < 44 + 48 + 6) count = 2;
-  else count = 3;
-
-  if (count === 0 || playedPlayerIds.length === 0) return [];
-
-  const shuffled = [...playedPlayerIds].sort(() => 0.5 - Math.random());
-  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
-
-  const injuryResults = [];
-  selected.forEach(pid => {
-    const p = players.find(x => x.id === pid);
-    if (!p) return;
-
-    const randSev = Math.random() * 100;
-    let type = '', days = 0;
-
-    if (randSev < 55) { type = '軽傷'; days = getRandomInt(1, 2); }
-    else if (randSev < 55 + 32) { type = '中傷'; days = getRandomInt(3, 5); }
-    else if (randSev < 55 + 32 + 10) { type = '重傷'; days = getRandomInt(6, 10); }
-    else { type = '超重症'; days = getRandomInt(19, 38); }
-
-    p.injuryDays = days;
-    p.justReturned = false;
-    injuryResults.push({ name: `${p.number} ${p.name}`, type: type, days: days });
-  });
-
-  return injuryResults;
-}
-
-function recalculateAllPlayerStats() {
-  players.forEach(p => {
-    p.apps = 0;
-    p.subApps = 0;
-    p.goals = 0;
-    p.assists = 0;
-    if (p.subApps === undefined) p.subApps = 0;
-  });
-
-  matches.forEach(m => {
-    (m.starterIds || []).forEach(id => {
-      const p = players.find(x => x.id === id);
-      if(p) p.apps += 1;
-    });
-
-    (m.subIds || []).forEach(id => {
-      const p = players.find(x => x.id === id);
-      if(p) {
-        p.apps += 1;
-        p.subApps += 1;
+    // タップで移動させる処理（移動時も自動的にソートされて表示されます）
+    function moveToSub(name) {
+      const index = starters.findIndex(p => p.name === name);
+      if (index !== -1) {
+        subs.push(starters.splice(index, 1)[0]);
+        render();
       }
-    });
-
-    (m.scorerRecords || []).forEach(r => {
-      const p = players.find(x => x.id === r.id);
-      if(p) p.goals += r.count;
-    });
-
-    (m.assistRecords || []).forEach(r => {
-      const p = players.find(x => x.id === r.id);
-      if(p) p.assists += r.count;
-    });
-  });
-}
-
-function submitMatch() {
-  const editId = document.getElementById('editing-match-id').value;
-  const section = document.getElementById('m-section').value;
-  const opponent = document.getElementById('m-opponent').value;
-  const location = document.getElementById('m-location').value;
-  const scoreMy = parseInt(document.getElementById('m-score-my').innerText);
-  const scoreOpp = parseInt(document.getElementById('m-score-opp').innerText);
-
-  if (!section || !opponent) return alert('節と対戦相手を入力してください');
-
-  const playedIds = Array.from(new Set([...currentMatchStarters, ...currentMatchSubs]));
-
-  const scorerRecords = [];
-  const assistRecords = [];
-  const matchScorersText = [];
-  const matchAssistsText = [];
-
-  playedIds.forEach(id => {
-    const p = players.find(x => x.id === id);
-    if (!p) return;
-    const gEl = document.getElementById(`g_${p.id}`);
-    const aEl = document.getElementById(`a_${p.id}`);
-    const gCount = gEl ? parseInt(gEl.innerText) : 0;
-    const aCount = aEl ? parseInt(aEl.innerText) : 0;
-
-    if (gCount > 0) {
-      scorerRecords.push({ id: p.id, count: gCount });
-      matchScorersText.push(`${p.number} ${p.name}${gCount > 1 ? `(${gCount})` : ''}`);
     }
-    if (aCount > 0) {
-      assistRecords.push({ id: p.id, count: aCount });
-      matchAssistsText.push(`${p.number} ${p.name}${aCount > 1 ? `(${aCount})` : ''}`);
-    }
-  });
 
-  if (editId) {
-    const idx = matches.findIndex(m => m.id === editId);
-    if (idx !== -1) {
-      matches[idx] = {
-        ...matches[idx],
-        section, opponent, location, scoreMy, scoreOpp,
-        starterIds: currentMatchStarters,
-        subIds: currentMatchSubs,
-        scorerRecords, assistRecords,
-        scorersText: matchScorersText,
-        assistsText: matchAssistsText
-      };
-    }
-    alert('試合内容を更新しました！');
-  } else {
-    // 試合消化で怪我日数減算（0になった選手は復帰フラグON）
-    players.forEach(p => {
-      if (p.injuryDays > 0) {
-        p.injuryDays -= 1;
-        if (p.injuryDays === 0) p.justReturned = true;
-      } else {
-        p.justReturned = false;
+    function moveToStarter(name) {
+      const index = subs.findIndex(p => p.name === name);
+      if (index !== -1) {
+        starters.push(subs.splice(index, 1)[0]);
+        render();
       }
-    });
+    }
 
-    const newInjuries = calculateInjuries(playedIds);
+    function loadSampleData() {
+      render();
+    }
 
-    matches.push({
-      id: 'm_' + Date.now(),
-      section, opponent, location, scoreMy, scoreOpp,
-      starterIds: currentMatchStarters,
-      subIds: currentMatchSubs,
-      scorerRecords, assistRecords,
-      scorersText: matchScorersText,
-      assistsText: matchAssistsText,
-      injuries: newInjuries
-    });
-
-    let resultMsg = `第${section}節の試合結果を登録しました！\n\n【怪我人判定結果】\n`;
-    if (newInjuries.length === 0) resultMsg += '怪我人は発生しませんでした（0人）';
-    else newInjuries.forEach(i => { resultMsg += `・${i.name}: ${i.type} (${i.days}試合離脱)\n`; });
-    alert(resultMsg);
-  }
-
-  recalculateAllPlayerStats();
-  saveStorage();
-  resetMatchForm();
-  switchTab('matches');
-}
-
-function resetMatchForm() {
-  document.getElementById('editing-match-id').value = '';
-  document.getElementById('match-form-title').innerText = '試合登録';
-  document.getElementById('submit-match-btn').innerText = '試合結果を登録（怪我抽選実行）';
-  document.getElementById('cancel-edit-btn').style.display = 'none';
-  initMatchForm();
-}
-
-function editMatch(matchId) {
-  const m = matches.find(x => x.id === matchId);
-  if (!m) return;
-
-  document.getElementById('editing-match-id').value = m.id;
-  document.getElementById('match-form-title').innerText = `第${m.section}節 試合内容の修正`;
-  document.getElementById('submit-match-btn').innerText = '更新して保存';
-  document.getElementById('cancel-edit-btn').style.display = 'block';
-
-  document.getElementById('m-section').value = m.section;
-  document.getElementById('m-opponent').value = m.opponent;
-  document.getElementById('m-location').value = m.location;
-  document.getElementById('m-score-my').innerText = m.scoreMy;
-  document.getElementById('m-score-opp').innerText = m.scoreOpp;
-
-  currentMatchStarters = [...m.starterIds];
-  currentMatchSubs = [...m.subIds];
-
-  renderMatchGrid();
-
-  m.scorerRecords.forEach(r => {
-    const el = document.getElementById(`g_${r.id}`);
-    if (el) el.innerText = r.count;
-  });
-  m.assistRecords.forEach(r => {
-    const el = document.getElementById(`a_${r.id}`);
-    if (el) el.innerText = r.count;
-  });
-
-  switchTab('match');
-}
-
-function renderMatches() {
-  const container = document.getElementById('match-list-container');
-  if (matches.length === 0) {
-    container.innerHTML = '<p>登録されている試合はありません。</p>';
-    return;
-  }
-
-  container.innerHTML = matches.map(m => `
-    <div style="background:#2a2a2a; padding:12px; margin-bottom:10px; border-radius:6px; position:relative;">
-      <button class="edit-btn" onclick="editMatch('${m.id}')">編集</button>
-      <div style="font-weight:bold; color:#00e676; margin-bottom:4px;">第${m.section}節 vs ${m.opponent} (${m.location})</div>
-      <div>スコア: <strong>${m.scoreMy} - ${m.scoreOpp}</strong></div>
-      <div>得点: ${m.scorersText.join(', ') || 'なし'}</div>
-      <div>アシスト: ${m.assistsText.join(', ') || 'なし'}</div>
-      <div style="color:#ff5252; font-size:0.85em; margin-top:4px;">怪我発生: ${m.injuries.map(i=>`${i.name}[${i.type}:${i.days}試合]`).join(', ') || 'なし'}</div>
-    </div>
-  `).join('');
-}
-
-// 新・ランキング描画関数
-function buildRankingHtml(list, key, unit) {
-  if (list.length === 0) return '<p style="color:#666; font-size:0.8em; text-align:center;">記録なし</p>';
-  
-  const top1 = list[0];
-  const others = list.slice(1, 5);
-
-  let html = `
-    <div class="top-player-card">
-      <div class="top-player-rank">👑 1st Rank</div>
-      <div class="top-player-name">${top1.name}</div>
-      <div class="top-player-score">
-        <span class="top-player-score-num">${top1[key]}</span>
-        <span class="top-player-score-unit">${unit}</span>
-      </div>
-    </div>
-    <ul class="ranking-list">
-  `;
-
-  others.forEach((p, idx) => {
-    html += `
-      <li>
-        <span class="rank-num">${idx + 2}</span>
-        <span class="player-name-text">${p.name}</span>
-        <strong>${p[key]}${unit}</strong>
-      </li>
-    `;
-  });
-
-  html += '</ul>';
-  return html;
-}
-
-// 成績＆ランキング描画
-function renderStats() {
-  const topScorers = [...players].filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals || a.number - b.number);
-  document.getElementById('goal-ranking').innerHTML = buildRankingHtml(topScorers, 'goals', '点');
-
-  const topAssists = [...players].filter(p => p.assists > 0).sort((a, b) => b.assists - a.assists || a.number - b.number);
-  document.getElementById('assist-ranking').innerHTML = buildRankingHtml(topAssists, 'assists', '点');
-
-  const tbody = document.getElementById('stats-table-body');
-  tbody.innerHTML = players.map(p => `
-    <tr>
-      <td>${p.number}</td>
-      <td style="text-align:left;">${p.name}</td>
-      <td>${p.pos}</td>
-      <td>${p.apps} <span style="font-size:0.8em; color:#aaa;">(${p.subApps || 0})</span></td>
-      <td>${p.goals}</td>
-      <td>${p.assists}</td>
-      <td>${p.injuryDays > 0 ? `<span class="injury-badge">残${p.injuryDays}試合</span>` : '出場可'}</td>
-    </tr>
-  `).join('');
-}
-
-let sortAsc = false;
-function sortTable(key) {
-  sortAsc = !sortAsc;
-  players.sort((a, b) => {
-    let valA = a[key], valB = b[key];
-    if (typeof valA === 'string') return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    return sortAsc ? valA - valB : valB - valA;
-  });
-  renderStats();
-}
-
-// 初期化処理
-initSaveData();
-</script>
+    // 初回表示
+    render();
+  </script>
 </body>
 </html>
