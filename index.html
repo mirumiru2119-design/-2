@@ -8,7 +8,7 @@
   body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 15px; }
   h1, h2, h3 { border-bottom: 2px solid #00e676; padding-bottom: 5px; color: #00e676; margin-top: 20px; }
   
-  /* セーブデータ切り替えヘッダー */
+  /* セーブデータ管理バー */
   .save-data-bar { background: #2a2a2a; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #00e676; }
   .save-data-controls { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
   .save-data-controls select { flex: 1; }
@@ -23,6 +23,11 @@
   input, select, button { margin-top: 5px; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 100%; box-sizing: border-box; }
   button.action-btn { background: #00e676; color: #000; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; padding: 12px; }
   
+  /* 故障者情報インフォ */
+  .injury-info-box { background: #2d1f1f; border: 1px solid #ff5252; padding: 10px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85em; }
+  .injury-info-title { font-weight: bold; color: #ff5252; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+  .returned-badge { background: #00e676; color: #000; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 0.8em; }
+
   /* タップ入れ替えリストUI */
   .squad-section { margin-bottom: 15px; }
   .squad-section-title { font-size: 0.9em; font-weight: bold; color: #aaa; margin-bottom: 5px; }
@@ -46,11 +51,27 @@
   th { background: #333; cursor: pointer; color: #00e676; }
   .injury-badge { background: #ff5252; color: #fff; padding: 2px 4px; border-radius: 4px; font-size: 0.75em; margin-left: 4px; }
   
-  .ranking-container { display: flex; gap: 10px; margin-bottom: 20px; }
-  .ranking-box { flex: 1; background: #2a2a2a; padding: 10px; border-radius: 6px; }
-  .ranking-box h4 { margin: 0 0 8px 0; color: #00e676; font-size: 0.9em; text-align: center; border-bottom: 1px solid #444; padding-bottom: 4px; }
-  .ranking-list { list-style: none; padding: 0; margin: 0; font-size: 0.8em; }
-  .ranking-list li { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #333; }
+  /* 新・ランキングUIデザイン */
+  .ranking-container { display: flex; gap: 10px; margin-bottom: 20px; flex-direction: column; }
+  @media (min-width: 600px) {
+    .ranking-container { flex-direction: row; }
+  }
+  .ranking-box { flex: 1; background: #242424; padding: 12px; border-radius: 8px; border: 1px solid #333; }
+  .ranking-box h4 { margin: 0 0 10px 0; color: #00e676; font-size: 0.95em; text-align: center; border-bottom: 1px solid #444; padding-bottom: 6px; }
+  
+  /* 1位カードデザイン */
+  .top-player-card { background: linear-gradient(135deg, #b71c1c 0%, #4a0000 100%); border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; border: 1px solid #ff5252; }
+  .top-player-rank { position: absolute; top: 4px; left: 8px; font-weight: bold; font-size: 0.75em; color: #ffd700; text-transform: uppercase; }
+  .top-player-name { font-weight: bold; font-size: 1.05em; margin-top: 10px; color: #fff; }
+  .top-player-score { text-align: right; }
+  .top-player-score-num { font-size: 1.6em; font-weight: bold; color: #fff; line-height: 1; }
+  .top-player-score-unit { font-size: 0.75em; color: #ddd; }
+
+  /* 2位以下のリスト */
+  .ranking-list { list-style: none; padding: 0; margin: 0; font-size: 0.85em; }
+  .ranking-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid #333; }
+  .ranking-list li .rank-num { font-weight: bold; color: #888; width: 20px; }
+  .ranking-list li .player-name-text { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
   
   .edit-btn { background: #ff9800; color: #000; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; float: right; }
 </style>
@@ -80,6 +101,12 @@
 <div id="tab-match" class="tab-content active">
   <h2 id="match-form-title">試合登録</h2>
   <input type="hidden" id="editing-match-id" value="">
+
+  <!-- 離脱・復帰状況インフォ -->
+  <div class="injury-info-box">
+    <div class="injury-info-title">🚑 故障者・復帰情報</div>
+    <div id="injury-info-content"></div>
+  </div>
   
   <h3>1. 試合前情報</h3>
   <label>節</label>
@@ -149,11 +176,11 @@
   <div class="ranking-container">
     <div class="ranking-box">
       <h4>⚽ 得点ランキング TOP5</h4>
-      <ul id="goal-ranking" class="ranking-list"></ul>
+      <div id="goal-ranking"></div>
     </div>
     <div class="ranking-box">
       <h4>👟 アシストランキング TOP5</h4>
-      <ul id="assist-ranking" class="ranking-list"></ul>
+      <div id="assist-ranking"></div>
     </div>
   </div>
 
@@ -163,7 +190,7 @@
         <th onclick="sortTable('number')">No</th>
         <th onclick="sortTable('name')">名前</th>
         <th onclick="sortTable('pos')">POS</th>
-        <th onclick="sortTable('apps')">出場</th>
+        <th onclick="sortTable('apps')">出場(途中)</th>
         <th onclick="sortTable('goals')">得点</th>
         <th onclick="sortTable('assists')">アシスト</th>
         <th>怪我状況</th>
@@ -212,39 +239,39 @@
 <script>
 // 鹿島アントラーズ初期データ
 const kashimaData = [
-  { id: 'k1', number: 1, name: '早川 友基', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k21', number: 21, name: '山田 大樹', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k29', number: 29, name: '梶川 裕嗣', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k31', number: 31, name: '藤井 陽登', pos: 'GK', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k2', number: 2, name: '安西 幸輝', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k3', number: 3, name: 'キム・テヒョン', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k4', number: 4, name: '千田 海人', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k5', number: 5, name: '関川 郁万', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k7', number: 7, name: '小川 諒也', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k19', number: 19, name: '大森 渚生', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k23', number: 23, name: '津久井 佳祐', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k25', number: 25, name: '小池 龍太', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k28', number: 28, name: '大川 佑悟', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k35', number: 35, name: '元砂 晏翔仁 ウデンバ', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k37', number: 37, name: '広瀬 陸斗', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k55', number: 55, name: '植田 直通', pos: 'DF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k6', number: 6, name: '三竿 健斗', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k8', number: 8, name: 'マテウス・ブエノ', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k10', number: 10, name: '柴崎 岳', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k14', number: 14, name: '樋口 雄太', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k24', number: 24, name: '林 晴己', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k27', number: 27, name: '松村 優太', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k42', number: 42, name: '大貫 琉偉', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k43', number: 43, name: '福岡 勇和', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k44', number: 44, name: '平島 大悟', pos: 'MF', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k9', number: 9, name: 'レオ・セアラ', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k11', number: 11, name: '田川 亨介', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k17', number: 17, name: 'エウベル', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k18', number: 18, name: 'ヤン・マテウス', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k30', number: 30, name: '吉田 湊海', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k34', number: 34, name: '徳田 誉', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
-  { id: 'k40', number: 40, name: '鈴木 優磨', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
-  { id: 'k77', number: 77, name: 'チャヴリッチ', pos: 'FW', apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true }
+  { id: 'k1', number: 1, name: '早川 友基', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k21', number: 21, name: '山田 大樹', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k29', number: 29, name: '梶川 裕嗣', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k31', number: 31, name: '藤井 陽登', pos: 'GK', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k2', number: 2, name: '安西 幸輝', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k3', number: 3, name: 'キム・テヒョン', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k4', number: 4, name: '千田 海人', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k5', number: 5, name: '関川 郁万', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k7', number: 7, name: '小川 諒也', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k19', number: 19, name: '大森 渚生', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k23', number: 23, name: '津久井 佳祐', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k25', number: 25, name: '小池 龍太', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k28', number: 28, name: '大川 佑悟', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k35', number: 35, name: '元砂 晏翔仁 ウデンバ', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k37', number: 37, name: '広瀬 陸斗', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k55', number: 55, name: '植田 直通', pos: 'DF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k6', number: 6, name: '三竿 健斗', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k8', number: 8, name: 'マテウス・ブエノ', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k10', number: 10, name: '柴崎 岳', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k14', number: 14, name: '樋口 雄太', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k24', number: 24, name: '林 晴己', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k27', number: 27, name: '松村 優太', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k42', number: 42, name: '大貫 琉偉', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k43', number: 43, name: '福岡 勇和', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k44', number: 44, name: '平島 大悟', pos: 'MF', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k9', number: 9, name: 'レオ・セアラ', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k11', number: 11, name: '田川 亨介', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k17', number: 17, name: 'エウベル', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k18', number: 18, name: 'ヤン・マテウス', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k30', number: 30, name: '吉田 湊海', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k34', number: 34, name: '徳田 誉', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false },
+  { id: 'k40', number: 40, name: '鈴木 優磨', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true },
+  { id: 'k77', number: 77, name: 'チャヴリッチ', pos: 'FW', apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: true }
 ];
 
 // セーブデータ関連の変数
@@ -268,8 +295,9 @@ function updateSaveSelect() {
 }
 
 function loadCurrentSlotData() {
-  players = JSON.parse(localStorage.getItem(`ef_players_${currentSlot}`)) || [...kashimaData];
+  players = JSON.parse(localStorage.getItem(`ef_players_${currentSlot}`)) || JSON.parse(JSON.stringify(kashimaData));
   matches = JSON.parse(localStorage.getItem(`ef_matches_${currentSlot}`)) || [];
+  recalculateAllPlayerStats();
   resetMatchForm();
 }
 
@@ -344,6 +372,7 @@ function switchTab(tabId) {
 function loadKashimaSquad() {
   if (confirm(`「${currentSlot}」の選手データを鹿島初期データに置き換えますか？`)) {
     players = JSON.parse(JSON.stringify(kashimaData));
+    recalculateAllPlayerStats();
     saveStorage();
     renderSquad();
     alert('データが更新されました');
@@ -391,7 +420,7 @@ function addSinglePlayer() {
   const pos = document.getElementById('p-pos').value;
   if (!name || isNaN(num)) return alert('名前と背番号を入力してください');
 
-  players.push({ id: 'p_' + Date.now(), number: num, name: name, pos: pos, apps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false });
+  players.push({ id: 'p_' + Date.now(), number: num, name: name, pos: pos, apps: 0, subApps: 0, goals: 0, assists: 0, injuryDays: 0, isBaseStarter: false });
   saveStorage();
   renderSquad();
   document.getElementById('p-name').value = '';
@@ -406,7 +435,30 @@ function initMatchForm() {
   document.getElementById('m-score-opp').innerText = '0';
   document.getElementById('m-section').value = '';
   document.getElementById('m-opponent').value = '';
+  renderInjuryInfo();
   renderMatchGrid();
+}
+
+// 故障者・復帰情報の描画
+function renderInjuryInfo() {
+  const container = document.getElementById('injury-info-content');
+  const injured = players.filter(p => p.injuryDays > 0);
+  const returned = players.filter(p => p.injuryDays === 0 && p.justReturned);
+
+  let html = '';
+  if (injured.length === 0 && returned.length === 0) {
+    html = '<span style="color:#aaa;">現在離脱中の選手、および今節復帰の選手はいません。</span>';
+  } else {
+    if (returned.length > 0) {
+      html += '<div style="margin-bottom:4px; color:#00e676;">🟢 <b>今節復帰:</b> ' + 
+        returned.map(p => `${p.number} ${p.name}<span class="returned-badge">復帰</span>`).join(', ') + '</div>';
+    }
+    if (injured.length > 0) {
+      html += '<div>🔴 <b>離脱中:</b> ' + 
+        injured.map(p => `${p.number} ${p.name} (残り${p.injuryDays}試合)`).join(', ') + '</div>';
+    }
+  }
+  container.innerHTML = html;
 }
 
 function renderMatchGrid() {
@@ -420,7 +472,7 @@ function renderMatchGrid() {
 
   startersGrid.innerHTML = starters.map(p => `
     <div class="player-chip pos-${p.pos}" onclick="moveMatchPlayer('${p.id}', 'starter')">
-      ${p.pos} ${p.number} ${p.name} ${p.injuryDays > 0 ? `<span class="injury-badge">怪我</span>` : ''}
+      ${p.pos} ${p.number} ${p.name} ${p.injuryDays > 0 ? `<span class="injury-badge">離脱中</span>` : ''}
     </div>
   `).join('') || '<span style="color:#666; font-size:0.8em;">なし</span>';
 
@@ -515,6 +567,7 @@ function calculateInjuries(playedPlayerIds) {
     else { type = '超重症'; days = getRandomInt(19, 38); }
 
     p.injuryDays = days;
+    p.justReturned = false;
     injuryResults.push({ name: `${p.number} ${p.name}`, type: type, days: days });
   });
 
@@ -524,23 +577,32 @@ function calculateInjuries(playedPlayerIds) {
 function recalculateAllPlayerStats() {
   players.forEach(p => {
     p.apps = 0;
+    p.subApps = 0;
     p.goals = 0;
     p.assists = 0;
+    if (p.subApps === undefined) p.subApps = 0;
   });
 
   matches.forEach(m => {
-    const playedIds = Array.from(new Set([...m.starterIds, ...m.subIds]));
-    playedIds.forEach(id => {
+    (m.starterIds || []).forEach(id => {
       const p = players.find(x => x.id === id);
       if(p) p.apps += 1;
     });
 
-    m.scorerRecords.forEach(r => {
+    (m.subIds || []).forEach(id => {
+      const p = players.find(x => x.id === id);
+      if(p) {
+        p.apps += 1;
+        p.subApps += 1;
+      }
+    });
+
+    (m.scorerRecords || []).forEach(r => {
       const p = players.find(x => x.id === r.id);
       if(p) p.goals += r.count;
     });
 
-    m.assistRecords.forEach(r => {
+    (m.assistRecords || []).forEach(r => {
       const p = players.find(x => x.id === r.id);
       if(p) p.assists += r.count;
     });
@@ -597,7 +659,16 @@ function submitMatch() {
     }
     alert('試合内容を更新しました！');
   } else {
-    players.forEach(p => { if (p.injuryDays > 0) p.injuryDays -= 1; });
+    // 試合消化で怪我日数減算（0になった選手は復帰フラグON）
+    players.forEach(p => {
+      if (p.injuryDays > 0) {
+        p.injuryDays -= 1;
+        if (p.injuryDays === 0) p.justReturned = true;
+      } else {
+        p.justReturned = false;
+      }
+    });
+
     const newInjuries = calculateInjuries(playedIds);
 
     matches.push({
@@ -682,28 +753,57 @@ function renderMatches() {
   `).join('');
 }
 
+// 新・ランキング描画関数
+function buildRankingHtml(list, key, unit) {
+  if (list.length === 0) return '<p style="color:#666; font-size:0.8em; text-align:center;">記録なし</p>';
+  
+  const top1 = list[0];
+  const others = list.slice(1, 5);
+
+  let html = `
+    <div class="top-player-card">
+      <div class="top-player-rank">👑 1st Rank</div>
+      <div class="top-player-name">${top1.name}</div>
+      <div class="top-player-score">
+        <span class="top-player-score-num">${top1[key]}</span>
+        <span class="top-player-score-unit">${unit}</span>
+      </div>
+    </div>
+    <ul class="ranking-list">
+  `;
+
+  others.forEach((p, idx) => {
+    html += `
+      <li>
+        <span class="rank-num">${idx + 2}</span>
+        <span class="player-name-text">${p.name}</span>
+        <strong>${p[key]}${unit}</strong>
+      </li>
+    `;
+  });
+
+  html += '</ul>';
+  return html;
+}
+
 // 成績＆ランキング描画
 function renderStats() {
-  const topScorers = [...players].sort((a, b) => b.goals - a.goals || a.number - b.number).slice(0, 5);
-  document.getElementById('goal-ranking').innerHTML = topScorers.map((p, idx) => `
-    <li><span>${idx + 1}. [${p.pos}] ${p.number} ${p.name}</span><strong>${p.goals}点</strong></li>
-  `).join('');
+  const topScorers = [...players].filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals || a.number - b.number);
+  document.getElementById('goal-ranking').innerHTML = buildRankingHtml(topScorers, 'goals', '点');
 
-  const topAssists = [...players].sort((a, b) => b.assists - a.assists || a.number - b.number).slice(0, 5);
-  document.getElementById('assist-ranking').innerHTML = topAssists.map((p, idx) => `
-    <li><span>${idx + 1}. [${p.pos}] ${p.number} ${p.name}</span><strong>${p.assists}点</strong></li>
-  `).join('');
+  const topAssists = [...players].filter(p => p.assists > 0).sort((a, b) => b.assists - a.assists || a.number - b.number);
+  document.getElementById('assist-ranking').innerHTML = buildRankingHtml(topAssists, 'assists', '点');
 
   const tbody = document.getElementById('stats-table-body');
   tbody.innerHTML = players.map(p => `
     <tr>
       <td>${p.number}</td>
-      <td>${p.name}</td>
+      <td style="text-align:left;">${p.name}</td>
       <td>${p.pos}</td>
-      <td>${p.apps}</td>
+      <td>${p.apps} <span style="font-size:0.8em; color:#aaa;">(${p.subApps || 0})</span></td>
       <td>${p.goals}</td>
       <td>${p.assists}</td>
-      <td>${p.injuryDays > 0 ? `<span class="injury-badge">離脱中(残${p.injuryDays}試合)</span>` : '出場可'}</td>
+      <td>${p.injuryDays > 0 ? `<span class="injury-badge">残${p.injuryDays}試合</span>` : '出場可'}</td>
     </tr>
   `).join('');
 }
