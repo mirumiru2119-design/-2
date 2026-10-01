@@ -2,15 +2,36 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>スカッド・チーム管理</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>スカッド・チーム管理ツール</title>
   <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #ffffff;
+      --text-sub: #aaaaaa;
+      --accent-green: #4CAF50;
+      --btn-blue: #2196F3;
+      
+      /* ポジション別カラー */
+      --color-gk: #d35400; /* オレンジ/茶 */
+      --color-df: #1f618d; /* 青 */
+      --color-mf: #27ae60; /* 緑 */
+      --color-fw: #c0392b; /* 赤 */
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
-      background-color: #121212;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
       padding: 16px;
+      padding-bottom: 80px;
     }
 
     .container {
@@ -19,69 +40,101 @@
     }
 
     h1 {
-      color: #4CAF50;
-      font-size: 24px;
-      margin-bottom: 20px;
+      color: var(--accent-green);
+      font-size: 22px;
+      margin-top: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--accent-green);
+      padding-bottom: 8px;
     }
 
-    h2 {
-      font-size: 18px;
-      border-bottom: 2px solid #4CAF50;
-      padding-bottom: 4px;
-      margin-top: 24px;
-    }
-
-    .btn-load {
+    .btn-main {
       width: 100%;
-      background-color: #2196F3;
+      background-color: var(--btn-blue);
       color: white;
       border: none;
-      padding: 12px;
+      padding: 12px 16px;
       border-radius: 8px;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 15px;
       cursor: pointer;
       margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .btn-main:active {
+      opacity: 0.8;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--accent-green);
+      margin-top: 20px;
+      margin-bottom: 8px;
     }
 
     .sub-text {
-      font-size: 13px;
-      color: #aaa;
+      font-size: 12px;
+      color: var(--text-sub);
       margin-bottom: 12px;
     }
 
     .card {
-      background-color: #1e1e1e;
+      background-color: var(--card-bg);
       border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 20px;
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
+    .card-header {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 選手バッジ表示エリア */
     .badge-container {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      min-height: 48px;
     }
 
-    /* 選手バッジのスタイル */
+    /* 選手バッジ */
     .player-badge {
       display: inline-flex;
       align-items: center;
-      padding: 6px 12px;
+      gap: 6px;
+      padding: 8px 14px;
       border-radius: 20px;
       font-weight: bold;
       font-size: 14px;
-      color: white;
+      color: #ffffff;
       cursor: pointer;
       user-select: none;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      transition: transform 0.1s ease;
     }
 
-    /* ポジション別カラー */
-    .pos-GK { background-color: #e67e22; } /* オレンジ */
-    .pos-DF { background-color: #2980b9; } /* 青 */
-    .pos-MF { background-color: #27ae60; } /* 緑 */
-    .pos-FW { background-color: #c0392b; } /* 赤 */
+    .player-badge:active {
+      transform: scale(0.95);
+    }
+
+    /* ポジション別背景色 */
+    .badge-GK { background-color: var(--color-gk); }
+    .badge-DF { background-color: var(--color-df); }
+    .badge-MF { background-color: var(--color-mf); }
+    .badge-FW { background-color: var(--color-fw); }
+
+    .count-text {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
   </style>
 </head>
 <body>
@@ -89,118 +142,146 @@
   <div class="container">
     <h1>スカッド・チーム管理</h1>
 
-    <button class="btn-load" onclick="loadSampleData()">鹿島アントラーズの選手データを読み込む</button>
+    <button class="btn-main" onclick="resetToDefaultData()">鹿島アントラーズの選手データを読み込む</button>
 
-    <h2>基本スタメン設定</h2>
-    <p class="sub-text">タップしてスタメン11人を選んで保存してください。</p>
+    <div class="section-title">基本スタメン設定</div>
+    <div class="sub-text">タップしてスタメン11人を選んで保存してください。</div>
 
+    <!-- スタメンエリア -->
     <div class="card">
-      <div style="font-weight: bold; margin-bottom: 8px;">⭐ 基本スタメン（タップで解除）</div>
-      <div id="starter-list" class="badge-container">
-        <!-- スタメンがここにポジション順で表示されます -->
+      <div class="card-header">
+        <span>⭐ 基本スタメン（タップで解除）</span>
+        <span id="starter-count" class="count-text">0 / 11人</span>
       </div>
+      <div id="starter-list" class="badge-container"></div>
     </div>
 
+    <!-- 控えエリア -->
     <div class="card">
-      <div style="font-weight: bold; margin-bottom: 8px;">🏃 控えメンバー（タップで基本スタメンに追加）</div>
-      <div id="sub-list" class="badge-container">
-        <!-- 控えがここにポジション順で表示されます -->
+      <div class="card-header">
+        <span>🏃 控えメンバー（タップで基本スタメンに追加）</span>
+        <span id="sub-count" class="count-text">0人</span>
       </div>
+      <div id="sub-list" class="badge-container"></div>
     </div>
   </div>
 
   <script>
-    // ポジションの並び順定義（GK -> DF -> MF -> FW）
-    const POSITION_ORDER = { 'GK': 1, 'DF': 2, 'MF': 3, 'FW': 4 };
+    // ポジション順序の定義（上から GK -> DF -> MF -> FW）
+    const POSITION_ORDER = {
+      'GK': 1,
+      'DF': 2,
+      'MF': 3,
+      'FW': 4
+    };
 
-    // サンプルデータ
-    let starters = [
-      { pos: 'FW', num: 9, name: 'レオ・セアラ' },
-      { pos: 'FW', num: 40, name: '鈴木 優磨' },
-      { pos: 'DF', num: 7, name: '小川 諒也' },
-      { pos: 'DF', num: 55, name: '植田 直通' },
-      { pos: 'MF', num: 6, name: '三竿 健斗' },
-      { pos: 'MF', num: 10, name: '柴崎 岳' },
-      { pos: 'GK', num: 1, name: '早川 友基' },
-      { pos: 'DF', num: 5, name: '関川 郁万' },
-      { pos: 'DF', num: 25, name: '小池 龍太' },
-      { pos: 'MF', num: 27, name: '松村 優太' },
-      { pos: 'FW', num: 17, name: 'エウベル' }
+    // 鹿島アントラーズ 選手初期データ
+    const DEFAULT_PLAYERS = [
+      { id: 1,  pos: 'GK', num: 1,  name: '早川 友基' },
+      { id: 21, pos: 'GK', num: 21, name: '山田 大樹' },
+      { id: 29, pos: 'GK', num: 29, name: '梶川 裕嗣' },
+      { id: 31, pos: 'GK', num: 31, name: 'パク・ウィジョン' },
+      { id: 2,  pos: 'DF', num: 2,  name: '安西 幸輝' },
+      { id: 3,  pos: 'DF', num: 3,  name: 'キム・テヒョン' },
+      { id: 4,  pos: 'DF', num: 4,  name: '千田 遼矢' },
+      { id: 5,  pos: 'DF', num: 5,  name: '関川 郁万' },
+      { id: 7,  pos: 'DF', num: 7,  name: '小川 諒也' },
+      { id: 25, pos: 'DF', num: 25, name: '小池 龍太' },
+      { id: 55, pos: 'DF', num: 55, name: '植田 直通' },
+      { id: 6,  pos: 'MF', num: 6,  name: '三竿 健斗' },
+      { id: 8,  pos: 'MF', num: 8,  name: 'マテウス・ブエノ' },
+      { id: 10, pos: 'MF', num: 10, name: '柴崎 岳' },
+      { id: 27, pos: 'MF', num: 27, name: '松村 優太' },
+      { id: 9,  pos: 'FW', num: 9,  name: 'レオ・セアラ' },
+      { id: 17, pos: 'FW', num: 17, name: 'エウベル' },
+      { id: 40, pos: 'FW', num: 40, name: '鈴木 優磨' },
+      { id: 77, pos: 'FW', num: 77, name: 'チャヴリッチ' }
     ];
 
-    let subs = [
-      { pos: 'MF', num: 8, name: 'マテウス・ブエノ' },
-      { pos: 'FW', num: 77, name: 'チャヴリッチ' },
-      { pos: 'DF', num: 2, name: '安西 幸輝' },
-      { pos: 'GK', num: 21, name: '山田 大樹' },
-      { pos: 'GK', num: 29, name: '梶川 裕嗣' },
-      { pos: 'GK', num: 31, name: 'パク・ウィジョン' },
-      { pos: 'DF', num: 3, name: 'キム・テヒョン' },
-      { pos: 'DF', num: 4, name: '千田 遼矢' }
-    ];
+    // アプリケーション状態
+    let startingMembers = [];
+    let subMembers = [];
 
-    // --- 【重要】ポジション順にソートする関数 ---
-    function sortPlayers(playerArray) {
-      return [...playerArray].sort((a, b) => {
+    // --- ポジション順（GK->DF->MF->FW）かつ背番号順にソートする関数 ---
+    function sortPlayersByPosition(playerList) {
+      return [...playerList].sort((a, b) => {
         const orderA = POSITION_ORDER[a.pos] || 99;
         const orderB = POSITION_ORDER[b.pos] || 99;
 
-        // ポジションが異なる場合はポジション順 (GK -> DF -> MF -> FW)
         if (orderA !== orderB) {
-          return orderA - orderB;
+          return orderA - orderB; // ポジション優先
         }
-        // 同じポジションの場合は背番号順
-        return a.num - b.num;
+        return a.num - b.num; // 同ポジション内は背番号昇順
       });
     }
 
-    // 画面に選手バッジを描画する関数
+    // データ読み込み＆初期化
+    function resetToDefaultData() {
+      // 初期状態として一部をスタメン、残りを控えに分配
+      const initialStartersIds = [9, 40, 7, 55, 6, 10, 1, 5, 25, 27, 17];
+      
+      startingMembers = DEFAULT_PLAYERS.filter(p => initialStartersIds.includes(p.id));
+      subMembers = DEFAULT_PLAYERS.filter(p => !initialStartersIds.includes(p.id));
+
+      render();
+    }
+
+    // 画面再描画処理
     function render() {
       const starterContainer = document.getElementById('starter-list');
       const subContainer = document.getElementById('sub-list');
 
-      // ソート適用後のリストを取得
-      const sortedStarters = sortPlayers(starters);
-      const sortedSubs = sortPlayers(subs);
+      // ★ここで常にポジション順に並び替えを行います★
+      const sortedStarters = sortPlayersByPosition(startingMembers);
+      const sortedSubs = sortPlayersByPosition(subMembers);
 
-      // スタメン描画
+      // スタメンバッジ生成
       starterContainer.innerHTML = sortedStarters.map(p => `
-        <div class="player-badge pos-${p.pos}" onclick="moveToSub('${p.name}')">
-          ${p.pos} ${p.num} ${p.name}
+        <div class="player-badge badge-${p.pos}" onclick="moveToSub(${p.id})">
+          <span>${p.pos}</span>
+          <span>${p.num}</span>
+          <span>${p.name}</span>
         </div>
       `).join('');
 
-      // 控え描画
+      // 控えバッジ生成
       subContainer.innerHTML = sortedSubs.map(p => `
-        <div class="player-badge pos-${p.pos}" onclick="moveToStarter('${p.name}')">
-          ${p.pos} ${p.num} ${p.name}
+        <div class="player-badge badge-${p.pos}" onclick="moveToStarter(${p.id})">
+          <span>${p.pos}</span>
+          <span>${p.num}</span>
+          <span>${p.name}</span>
         </div>
       `).join('');
+
+      // 件数更新
+      document.getElementById('starter-count').textContent = `${startingMembers.length} / 11人`;
+      document.getElementById('sub-count').textContent = `${subMembers.length}人`;
     }
 
-    // タップで移動させる処理（移動時も自動的にソートされて表示されます）
-    function moveToSub(name) {
-      const index = starters.findIndex(p => p.name === name);
+    // スタメンから控えへ移動
+    function moveToSub(id) {
+      const index = startingMembers.findIndex(p => p.id === id);
       if (index !== -1) {
-        subs.push(starters.splice(index, 1)[0]);
+        const player = startingMembers.splice(index, 1)[0];
+        subMembers.push(player);
         render();
       }
     }
 
-    function moveToStarter(name) {
-      const index = subs.findIndex(p => p.name === name);
+    // 控えからスタメンへ移動
+    function moveToStarter(id) {
+      const index = subMembers.findIndex(p => p.id === id);
       if (index !== -1) {
-        starters.push(subs.splice(index, 1)[0]);
+        const player = subMembers.splice(index, 1)[0];
+        startingMembers.push(player);
         render();
       }
     }
 
-    function loadSampleData() {
-      render();
-    }
-
-    // 初回表示
-    render();
+    // 起動時の初期化
+    window.onload = function() {
+      resetToDefaultData();
+    };
   </script>
 </body>
 </html>
